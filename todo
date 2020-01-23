@@ -1,0 +1,12 @@
+Base:
+    [x] Compile example
+    [ ] Flash on dev device
+    [ ] GPIO usage (push button -> light LED)
+    [ ] Use bluetooth (show up as device)
+    [ ] Show up as keyboard over bluetooth
+    [ ] Show up as keyboard over USB
+
+Keyboard:
+    [ ] Send keyboard keycode over bluetooth
+    [ ] Send mouse event over bluetooth
+    [ ] Send keyboard+mouse events over USB
