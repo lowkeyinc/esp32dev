@@ -1,8 +1,8 @@
-* [3/6] Base
+* [4/6] Base
   1. [X] Compile example
   2. [X] Flash on dev device
   3. [X] GPIO usage (push button -> light LED)
-  4. [ ] Use bluetooth (show up as device)
+  4. [X] Use bluetooth (show up as device)
   5. [ ] Show up as keyboard over bluetooth
   6. [ ] Show up as keyboard over USB
 * [0/3] Keyboard
