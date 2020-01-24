@@ -110,10 +110,14 @@ void app_main(void){
     
     // Main loop
     bool pressed=1;
+    bool state=0;
+    gpio_set_level(LED_GPIO, state);
     while(1) {
 	    pressed=!gpio_get_level(BUTTON_GPIO);
-	    printf("Turning %s the LED\n",pressed?"on":"off");
-	    gpio_set_level(LED_GPIO, pressed);
-	    vTaskDelay(1000 / portTICK_PERIOD_MS);
+	    if(state!=pressed){
+		    printf("Turning %s the LED\n",pressed?"on":"off");
+		    gpio_set_level(LED_GPIO, (state=pressed));
+	    }
+	    vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
