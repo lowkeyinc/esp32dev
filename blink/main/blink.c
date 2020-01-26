@@ -9,16 +9,22 @@
 #define LED_GPIO 32
 #define BUTTON_GPIO 5
 
+static bool led_state = false;
+
 void bluetooth_task(void *pvParameters){
 	vTaskDelay(1000 / portTICK_PERIOD_MS);
 	while(1) {
 		vTaskDelay(2000 / portTICK_PERIOD_MS);
-		if (sec_conn) {
-			ESP_LOGI(HID_DEMO_TAG, "Send the volume");
-			send_volum_up = true;
+		if(led_state){
+			ESP_LOGI(BLE_HID_LOG_NAME, "Send the letter");
 			// if (no keys in buffer) sleep until timer.
-			//uint8_t key_value = {HID_KEY_A}; // atomic load/pop next key
-			//esp_hidd_send_keyboard_value(hid_conn_id, 0, &key_value, 1);
+			uint8_t key_value = {HID_KEY_A}; // atomic load/pop next key
+			esp_hidd_send_keyboard_value(hid_conn_id, 0, &key_value, 1);
+			esp_hidd_send_keyboard_value(hid_conn_id, 0, &key_value, 0);
+		}
+		/*if (sec_conn) {
+			//ESP_LOGI(BLE_HID_LOG_NAME, "Send the volume");
+			//send_volum_up = true;
 			esp_hidd_send_consumer_value(hid_conn_id, HID_CONSUMER_VOLUME_UP, true);
 			vTaskDelay(3000 / portTICK_PERIOD_MS);
 			if (send_volum_up) {
@@ -28,14 +34,14 @@ void bluetooth_task(void *pvParameters){
 				vTaskDelay(3000 / portTICK_PERIOD_MS);
 				esp_hidd_send_consumer_value(hid_conn_id, HID_CONSUMER_VOLUME_DOWN, false);
 			}
-		}
+			}*/
 	}
 }
 
 void setup_ble_hidd(){
 	esp_err_t ret;
 
-	//     // Initialize NVS.
+	// Initialize NVS.
 	ret = nvs_flash_init();
 	if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
 		ESP_ERROR_CHECK(nvs_flash_erase());
@@ -48,30 +54,30 @@ void setup_ble_hidd(){
 	esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
 	ret = esp_bt_controller_init(&bt_cfg);
 	if (ret) {
-		ESP_LOGE(HID_DEMO_TAG, "%s initialize controller failed\n", __func__);
+		ESP_LOGE(BLE_HID_LOG_NAME, "%s initialize controller failed\n", __func__);
 		return;
 	}
     
 	ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
 	if (ret) {
-		ESP_LOGE(HID_DEMO_TAG, "%s enable controller failed\n", __func__);
+		ESP_LOGE(BLE_HID_LOG_NAME, "%s enable controller failed\n", __func__);
 		return;
 	}
     
 	ret = esp_bluedroid_init();
 	if (ret) {
-		ESP_LOGE(HID_DEMO_TAG, "%s init bluedroid failed\n", __func__);
+		ESP_LOGE(BLE_HID_LOG_NAME, "%s init bluedroid failed\n", __func__);
 		return;
 	}
     
 	ret = esp_bluedroid_enable();
 	if (ret) {
-		ESP_LOGE(HID_DEMO_TAG, "%s init bluedroid failed\n", __func__);
+		ESP_LOGE(BLE_HID_LOG_NAME, "%s init bluedroid failed\n", __func__);
 		return;
 	}
     
 	if((ret = esp_hidd_profile_init()) != ESP_OK) {
-		ESP_LOGE(HID_DEMO_TAG, "%s init bluedroid failed\n", __func__);
+		ESP_LOGE(BLE_HID_LOG_NAME, "%s init bluedroid failed\n", __func__);
 	}
 
 	///register the callback function to the gap module
@@ -110,16 +116,15 @@ void app_main(void){
 	gpio_set_direction(BUTTON_GPIO, GPIO_MODE_INPUT);
 
 	setup_ble_hidd();
-	
+
 	// Main loop
-	bool pressed=1;
-	bool state=0;
-	gpio_set_level(LED_GPIO, state);
+	bool pressed=false;
+	gpio_set_level(LED_GPIO, led_state);
 	while(1) {
 		pressed=!gpio_get_level(BUTTON_GPIO);
-		if(state!=pressed){
+		if(led_state!=pressed){
 			printf("Turning %s the LED\n",pressed?"on":"off");
-			gpio_set_level(LED_GPIO, (state=pressed));
+			gpio_set_level(LED_GPIO, (led_state=pressed));
 		}
 		vTaskDelay(100 / portTICK_PERIOD_MS);
 	}
