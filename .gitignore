@@ -1,1 +1,4 @@
 **/build
+blink/sdkconfig
+.idea
+blink/cmake-build-debug/
