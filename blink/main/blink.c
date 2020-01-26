@@ -6,36 +6,36 @@
 
 #include "ble_hidd.c"
 
+#include "freertos/queue.h"
+
 #define LED_GPIO 32
 #define BUTTON_GPIO 5
 
 static bool led_state = false;
+typedef struct {	bool down;
+	                uint8_t key;} key_press;
+static QueueHandle_t key_buffer;
+
+#define ifwhile(COND) if(COND)while(COND)
 
 void bluetooth_task(void *pvParameters){
+	#define LOG_NAME "ble_key_buffer_reader"
 	vTaskDelay(1000 / portTICK_PERIOD_MS);
+	key_press key_value;
 	while(1) {
-		vTaskDelay(2000 / portTICK_PERIOD_MS);
-		if(led_state){
-			ESP_LOGI(BLE_HID_LOG_NAME, "Send the letter");
-			// if (no keys in buffer) sleep until timer.
-			uint8_t key_value = {HID_KEY_A}; // atomic load/pop next key
-			esp_hidd_send_keyboard_value(hid_conn_id, 0, &key_value, 1);
-			esp_hidd_send_keyboard_value(hid_conn_id, 0, &key_value, 0);
+		vTaskDelay(100 / portTICK_PERIOD_MS);
+		ifwhile(uxQueueMessagesWaiting(key_buffer)){
+			ESP_LOGI(LOG_NAME, "Send the letter");
+			xQueueReceive(key_buffer,&key_value,0/*no wait*/);
+			esp_hidd_send_keyboard_value(hid_conn_id, 0, &key_value.key, key_value.down);
+			vTaskDelay(10/portTICK_PERIOD_MS); // for interupts
+		}else{
+			ESP_LOGI(LOG_NAME, "No Letters, sleeping for a while");
+			vTaskDelay(1000/portTICK_PERIOD_MS);
+			// TODO: Go into low power sleep for the keys to wake up from.
 		}
-		/*if (sec_conn) {
-			//ESP_LOGI(BLE_HID_LOG_NAME, "Send the volume");
-			//send_volum_up = true;
-			esp_hidd_send_consumer_value(hid_conn_id, HID_CONSUMER_VOLUME_UP, true);
-			vTaskDelay(3000 / portTICK_PERIOD_MS);
-			if (send_volum_up) {
-				send_volum_up = false;
-				esp_hidd_send_consumer_value(hid_conn_id, HID_CONSUMER_VOLUME_UP, false);
-				esp_hidd_send_consumer_value(hid_conn_id, HID_CONSUMER_VOLUME_DOWN, true);
-				vTaskDelay(3000 / portTICK_PERIOD_MS);
-				esp_hidd_send_consumer_value(hid_conn_id, HID_CONSUMER_VOLUME_DOWN, false);
-			}
-			}*/
 	}
+	#undef LOG_NAME
 }
 
 void setup_ble_hidd(){
@@ -115,17 +115,115 @@ void app_main(void){
 	gpio_set_direction(LED_GPIO, GPIO_MODE_OUTPUT);
 	gpio_set_direction(BUTTON_GPIO, GPIO_MODE_INPUT);
 
+
+	// Setup global state.
+	key_buffer = xQueueCreate(1<<7,sizeof(key_press));
+
+	// Start bluetooth worker.
 	setup_ble_hidd();
 
 	// Main loop
 	bool pressed=false;
 	gpio_set_level(LED_GPIO, led_state);
+	bool toggel=false;
 	while(1) {
 		pressed=!gpio_get_level(BUTTON_GPIO);
 		if(led_state!=pressed){
 			printf("Turning %s the LED\n",pressed?"on":"off");
 			gpio_set_level(LED_GPIO, (led_state=pressed));
+
+			key_press k;
+
+			if(pressed)if((toggel=!toggel)){
+				printf("Sending \"Hello, world!\"");
+
+				k.key=HID_KEY_RIGHT_SHIFT;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_H;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_H;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_RIGHT_SHIFT;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+
+				k.key=HID_KEY_E;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_E;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+
+				k.key=HID_KEY_L;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_L;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+
+				k.key=HID_KEY_L;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_L;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+
+				k.key=HID_KEY_O;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_O;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+
+				k.key=HID_KEY_COMMA;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_COMMA;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+
+				k.key=HID_KEY_SPACEBAR;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_SPACEBAR;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+
+				k.key=HID_KEY_W;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_W;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+
+				k.key=HID_KEY_O;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_O;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+
+				k.key=HID_KEY_R;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_R;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+
+				k.key=HID_KEY_L;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_L;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+
+				k.key=HID_KEY_D;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_D;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+
+				k.key=HID_KEY_LEFT_SHIFT;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_1;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_1;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_LEFT_SHIFT;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+
+				k.key=HID_KEY_RETURN;k.down=true;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				k.key=HID_KEY_RETURN;k.down=false;
+				xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+			}else{
+				printf("Clearing \"Hello, world!\"");
+				for(int i=0;i<14;i++){
+					k.key=HID_KEY_DELETE;k.down=true;
+					xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+					k.key=HID_KEY_DELETE;k.down=false;
+					xQueueSendToBackFromISR(key_buffer,&k,pdFALSE);
+				}
+			}
 		}
-		vTaskDelay(100 / portTICK_PERIOD_MS);
+		vTaskDelay(10 / portTICK_PERIOD_MS);
 	}
 }

@@ -7,8 +7,10 @@
   1. [ ] Show up as keyboard over bluetooth
   2. [ ] Show up as keyboard over USB
   3. [ ] Sleep until key press
-  4. [ ] Buffer key presses
-  5. [X] Send keyboard keycode over bluetooth
+  4. [X] Buffer key presses
+  5. [-] Send keyboard keycode over bluetooth
+     1. [X] Send normal keys
+     2. [ ] Send a shift key
   6. [ ] Send mouse event over bluetooth
   7. [ ] Send keyboard+mouse events over USB
 * [0/1] LEDs

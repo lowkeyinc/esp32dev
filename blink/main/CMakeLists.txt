@@ -4,4 +4,4 @@ idf_component_register(SRCS "blink.c"
                             "hid_device_le_prf.c"
                     INCLUDE_DIRS ".")
 
-target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-unused-const-variable)
+target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-unused-const-variable -Wno-dangling-else)
