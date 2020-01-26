@@ -3,6 +3,7 @@
   2. [X] Flash on dev device
   3. [X] GPIO usage (push button -> light LED)
   4. [X] Use bluetooth (show up as device)
+  5. [ ] Use tiny core to sleep and wake up big cores
 * [1/7] Keyboard
   1. [ ] Show up as keyboard over bluetooth
   2. [ ] Show up as keyboard over USB
@@ -13,5 +14,6 @@
      2. [ ] Send a shift key
   6. [ ] Send mouse event over bluetooth
   7. [ ] Send keyboard+mouse events over USB
+  8. [ ] Handle row-column keyboard matrix w/ basic keyboard layout
 * [0/1] LEDs
   1. [ ] Something APA102 plan here
