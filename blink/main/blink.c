@@ -1,13 +1,161 @@
+// -*- mode: org -*-
+// clangformat off
+/*
+* Prelude - File Format
+  This file is both a valid org-mode file and a valid c file.  As such
+  there is some strangeness to deal with clangformat's and org's
+  opions on indenting differing.
+* Include Statements
+** Libraries
+  - ~stdio.h~
+    
+    This library is for debug statements, only printf is used from
+    here.
+
+    TODO: Can that be disabled in non-debug builds?
+
+  - ~driver/gpio.h~
+
+  - ~freertos/FreeRTOS.h~
+
+  - ~freertos/queue.h~
+
+    An interrupt and thread safe queue for passing commands from the
+    GPIO handling code to the USB and Bluetooth managers.
+
+  - ~freertos/task.h~
+
+  - ~sdkconfig.h~
+*** Code
+    #+BEGIN_SRC c
 #include <stdio.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "driver/gpio.h"
-#include "sdkconfig.h"
-
-#include "ble_hidd.c"
-
+#include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "freertos/task.h"
+#include "sdkconfig.h"
+    #+END_SRC
+** Project Local
+  - ~bl_hidd.c~
+*** Code
+    #+BEGIN_SRC c
+ */
+#include "ble_hidd.c"
+/*
+    #+END_SRC
+* Design
+** Requirements
+   1. All normal keyboard features.
+      1. Send all normal key codes.
+      2. Send keys with status codes.
+      3. Press and hold keys.
+      4. Status lights
+	 1. Caps Lock
+	 2. Scroll Lock
+	 3. Number Lock
+   2. ErgoDox Features
+      1. Key Layers
+      2. Read Config File Formats
+** Thinking about impossible interactions and requirements.
+   Some combinations of interactions are impossible given how USB-HID
+   and PS2 work.  Such an interaction is holding down 'a' at the same
+   time as 'B' since 'B' requires shift and 'a' requires not shift.
 
+   Here is a list of features:
+   1) Holding down keys. (for games and application rep-keys)
+   2) Custome rep-key times (a key code is repetitively sent while the
+      button is held)
+   3) Custom char per key
+   4) Unicode chars
+
+   And the interactions between these features:
+   1,2 Incompatible
+   1,3 Incompatible if keys are not in the same shit layers as default
+   1,4 Incompatible
+   2,3 Compatible
+   2,4 Compatible
+   3,4 Compatible
+
+   Well, that's a clean divide.  When specifying a mode we will then
+   set if we are using feature (1) or features (2,3,4) as a toggle on
+   that mode.
+
+   What are the implications of this?
+
+   We want keys presses to be fast while in a mode.  We can discard
+   the above "keeping layer keys between modes" idea since modes are
+   now a larger and more important idea and the user will understand
+   the hard swap.
+
+   When a mode switch occurs, perform all key release actions and
+   ignore those keys until they are released.  This ignoring already
+   occurs in the above layout.
+
+   The rep-keys feature isn't really implementable in the above
+   system.  The key press and key release functions can add and remove
+   a char(s) from the ~rep_buffer~ and a timed daemon (like the
+   Bluetooth one) can keep re-adding the keys every unit time.
+** State Machine Time
+   When a key is pressed it can either send a (or more) key press to
+   the computer or change the layer mode.  When a key is released it
+   will either send a key release to the computer or revert the mode.
+
+   This doesn't allow for persistent mode changes.
+
+   Use Cases:
+   1. Tap 'a' -> Send 'a' Key
+   2. Press Shift, Tap 'a' -> Send 'A'
+   3. Press Shift, Tap 'a'. Tap 'b' -> Send 'AB'
+   4. Tap Caps-lock -> Switch to "Shift on by Default" Mode
+   5. Press Hyper, Tap ESC -> Switch to IPA Mode (or APL Mode, or
+   something)
+
+   We might also want access to adjusting the pairing settings from
+   the key interface, this would require arbitrary function calling.
+
+   Storing a structure of function pointers would allow for arbitrary
+   function calls.
+
+   There exists modes, layers, and functions. When the first key is
+   pressed it can:
+   1) change the mode
+   2) add a layer to further key presses
+   3) call a function and register a (possibly null) release function
+
+   The action performed by a key is looked up by: 1, the mode; 2, the
+   layer stack.  A key is either a layer key or a function key in any
+   given mode.
+
+   Example Flow:
+   1) A key is depressed.
+   2) it is looked up if the key is a function or a layer
+      1) it's a layer key
+         - A layer is added onto the stack and registered to the key
+           release
+      2) it's a function key
+         - if it's a mode key the mode is changed and the layer stack
+           is dropped
+         - A function is called and a release function is registered.
+
+   1) A key is released
+   - a function was registered to it
+     The function is called
+   - a layer was registered to it
+     - If the mode has changed nothing happens
+     - else the layer is removed from the layer sack
+
+   The layer stack is an ordered stack and is used in lookup up a
+   key's function(s). In most cases the order will not matter.
+
+   If CTRL is pressed and then a mode change occurs, then the user
+   will expect pressed keys to still send the CTRL versions.
+
+   - If a layer key is pressed during a mode switch then they layer
+     should also be active in the new mode.
+* Unsorted Code
+  #+BEGIN_SRC c
+ */
+// clangformat on
 #define LED_GPIO 32
 #define BUTTON_GPIO 5
 
@@ -104,66 +252,6 @@ void setup_ble_hidd(){
 	xTaskCreate(&bluetooth_task, "hid_task", 2048, NULL, 5, NULL);
 }
 
-
-/*
- * State Machine Time
- *
- * When a key is pressed it can either send a (or more) key press to
- * the computer or change the layer mode.  When a key is released it
- * will either send a key release to the computer or revert the mode.
- *
- * This doesn't allow for persistent mode changes.
- *
- * Use Cases:
- * 1. Tap 'a' -> Send 'a' Key
- * 2. Press Shift, Tap 'a' -> Send 'A'
- * 3. Press Shift, Tap 'a'. Tap 'b' -> Send 'AB'
- * 4. Tap Caps-lock -> Switch to "Shift on by Default" Mode
- * 5. Press Hyper, Tap ESC -> Switch to IPA Mode (or APL Mode, or something)
- *
- * We might also want access to adjusting the pairing settings from
- * the key interface, this would require arbitrary function calling.
- * 
- * Storing a structure of function pointers would allow for arbitrary
- * function calls.
- *
- * There exists modes, layers, and functions. When the first key is
- * pressed it can:
- * 1) change the mode
- * 2) add a layer to further key presses
- * 3) call a function and register a (possibly null) release function
- *
- * The action performed by a key is looked up by: 1, the mode; 2, the
- * layer stack.  A key is either a layer key or a function key in any
- * given mode.
- *
- * Example Flow:
- * 1) A key is depressed.
- * 2) it is looked up if the key is a function or a layer
- *    1) it's a layer key
- *       - A layer is added onto the stack and registered to the key
- *         release
- *    2) it's a function key
- *       - if it's a mode key the mode is changed and the layer stack
- *         is dropped 
- *       - A function is called and a release function is registered.
- *
- * 1) A key is released
- * - a function was registered to it
- *   The function is called
- * - a layer was registered to it
- *   - If the mode has changed nothing happens
- *   - else the layer is removed from the layer sack
- *
- * The layer stack is an ordered stack and is used in lookup up a
- * key's function(s). In most cases the order will not matter.
- *
- * If CTRL is pressed and then a mode change occurs, then the user
- * will expect pressed keys to still send the CTRL versions.
- *
- * - If a layer key is pressed during a mode switch then they layer
- *   should also be active in the new mode.
- */
 
 #define NO_KEY 0
 #define          NO_MODIFIER 0b00000000
@@ -311,37 +399,6 @@ const struct KeyEvent{
 	{    53,  LSHIFT_MOD}, /* 7E ~                             */
 	{    76, NO_MODIFIER}  /* 7F DEL                           */
 };
-
-/*
- * Thinking about impossible interactions and requirements.
- *
- * Some combinations of interactions are impossible given how USB-HID
- * and PS2 work.  Such an interaction is holding down 'a' at the same
- * time as 'B' since 'B' requires shift and 'a' requires not shift. 
- *
- * Here is a list of features:
- * 1) Holding down keys. (for games and application rep-keys)
- * 2) Rep-keys (a key code is repetitively sent while the button is
- *    held)
- * 3) Custom char per key
- * 4) Unicode chars
- *
- * And the interactions between these features:
- * 1,2 Incompatible
- * 1,3 Incompatible if keys are not in the same shit layers as default
- * 1,4 Incompatible
- * 2,3 Compatible
- * 2,4 Compatible
- * 3,4 Compatible
- *
- * Well, that's a clean divide.  When specifying a mode we will then
- * set if we are using feature (1) or features (2,3,4) as a toggle on
- * that mode.
- *
- * What are the implications of this?
- *
- * 
- */
 
 bool send_char(unicode_char c,unsigned char modifiers=0){
 	KeyEvent k={NO_KEY,NO_MODIFIER};
@@ -559,3 +616,7 @@ if(led_state!=pressed){
 	}
 }
 */
+/*
+ #+END_SRC
+* End of File Format Corrector
+//*/
