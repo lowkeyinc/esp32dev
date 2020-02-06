@@ -113,10 +113,321 @@
     on the keyboard.  This was meant to allow software on the computer
     to remap and reinterpret those keys.  This has historically not
     occurred outside of the operating system and only limitedly there.
+**** Code
+     #+BEGIN_SRC c
+//*/
+// clangformat on
+/**
+ * USB HID Keyboard scan codes as per USB spec 1.11
+ *
+ * Adapted from:
+ * https://source.android.com/devices/input/keyboard-devices.html
+ */
 
+enum struct usb_hid_modifier:unit8_t;
+enum struct usb_hid_key:uint8_t;
+
+struct USB_HID_STATUS{
+	usb_hid_modifier modifier;
+	uint8_t; //RESERVED
+	usb_hid_key key[6];
+};
+
+/**
+ * Modifier masks - used for the first byte in the HID report.
+ */
+enum struct usb_hid_modifier:uint8_t{
+	LCTRL	= 0x01,
+	LSHIFT	= 0x02,
+	LALT	= 0x04,
+	LMETA	= 0x08,
+	RCTRL	= 0x10,
+	RSHIFT	= 0x20,
+	RALT	= 0x40,
+	RMETA	= 0x80
+};
+/**
+ * Scan codes - last N slots in the HID report (usually 6).
+ * 0x00 if no key pressed.
+ *
+ * If more than N keys are pressed, the HID reports
+ * KEY_ERR_OVF in all slots to indicate this condition.
+ */
+
+enum struct usb_hid_key:uint8_t{
+	none            = 0x00, // No key pressed
+	error_overflow  = 0x01, // More than 8 keys pressed
+	post_fail       = 0x02, // Keyboard failed post
+	error_undefined = 0x03, // Keyboard Error Undefined
+
+	key_a           = 0x04,
+	key_b           = 0x05,
+	key_c           = 0x06,
+	key_d           = 0x07,
+	key_e           = 0x08,
+	key_f           = 0x09,
+	key_g           = 0x0a,
+	key_h           = 0x0b,
+	key_i           = 0x0c,
+	key_j           = 0x0d,
+	key_k           = 0x0e,
+	key_l           = 0x0f,
+	key_m           = 0x10,
+	key_n           = 0x11,
+	key_o           = 0x12,
+	key_p           = 0x13,
+	key_q           = 0x14,
+	key_r           = 0x15,
+	key_s           = 0x16,
+	key_t           = 0x17,
+	key_u           = 0x18,
+	key_v           = 0x19,
+	key_w           = 0x1a,
+	key_x           = 0x1b,
+	key_y           = 0x1c,
+	key_z           = 0x1d,
+
+	key_1           = 0x1e, // Alternate !
+	key_2           = 0x1f, // Alternate @
+	key_3           = 0x20, // Alternate #
+	key_4           = 0x21, // Alternate $
+	key_5           = 0x22, // Alternate %
+	key_6           = 0x23, // Alternate ^
+	key_7           = 0x24, // Alternate &
+	key_8           = 0x25, // Alternate *
+	key_9           = 0x26, // Alternate (
+	key_0           = 0x27, // Alternate )
+
+	key_enter       = 0x28.
+	key_esc	        = 0x29.
+	key_backspace   = 0x2a.
+	key_tab	        = 0x2b.
+	key_space       = 0x2c.
+
+	key_minus       = 0x2d, // Alternate  _
+	key_equal       = 0x2e, // Alternate  +
+	key_leftbrace   = 0x2f, // Alternate  {
+	key_rightbrace  = 0x30, // Alternate  }
+	key_backslash   = 0x31, // Alternate  |
+	key_semicolon   = 0x33, // Alternate  :
+	key_apostrophe  = 0x34, // Alternate  "
+	key_grave       = 0x35, // Alternate  ~
+	key_comma       = 0x36, // Alternate  <
+	key_dot         = 0x37, // Alternate  >
+	key_slash       = 0x38, // Alternate  ?
+
+	key_capslock	= 0x39,
+
+	key_f1          = 0x3a,
+	key_f2          = 0x3b,
+	key_f3          = 0x3c,
+	key_f4          = 0x3d,
+	key_f5          = 0x3e,
+	key_f6          = 0x3f,
+	key_f7          = 0x40,
+	key_f8          = 0x41,
+	key_f9          = 0x42,
+	key_f10         = 0x43,
+	key_f11         = 0x44,
+	key_f12         = 0x45,
+
+	key_prnt_screen = 0x46, // also SysRq
+	key_scrolllock  = 0x47,
+	key_pause       = 0x48,
+	key_insert      = 0x49,
+	key_home        = 0x4a,
+	key_pageup      = 0x4b,
+	key_delete      = 0x4c,
+	key_end         = 0x4d,
+	key_pagedown    = 0x4e,
+	key_right       = 0x4f,
+	key_left        = 0x50,
+	key_down        = 0x51,
+	key_up          = 0x52,
+
+	//TODO: what's "Clear"?
+	key_numlock     = 0x53, // Keyboard Num Lock and Clear
+
+	numpad_slash    = 0x54,
+	numpad_asterisk = 0x55,
+	numpad_minus    = 0x56,
+	numpad_plus     = 0x57,
+	numpad_equal    = 0x67, // Out of order
+	numpad_enter    = 0x58,
+	numpad_1        = 0x59, // Alternate End
+	numpad_2        = 0x5a, // Alternate Down Arrow
+	numpad_3        = 0x5b, // Alternate PageDn
+	numpad_4        = 0x5c, // Alternate Left Arrow
+	numpad_5        = 0x5d,
+	numpad_6        = 0x5e, // Alternate Right Arrow
+	numpad_7        = 0x5f, // Alternate Home
+	numpad_8        = 0x60, // Alternate Up Arrow
+	numpad_9        = 0x61, // Alternate Page Up
+	numpad_0        = 0x62, // Alternate Insert
+	numpad_dot      = 0x63, // Alternate Delete
+
+		// Common International Keys not on US keyboards
+	key_hash        = 0x32, // Alternate  ~
+	key_102nd       = 0x64, // Same as 0x31, also types \ Alternate |
+	numpad_comma    = 0x85,
+
+private:  // TODO: Test what any of the keys after here actually do.
+
+	key_compose     = 0x65, // Keyboard Application
+	key_power       = 0x66, // Keyboard Power
+
+		// Second Function Key Row
+	key_f13         = 0x68,
+	key_f14         = 0x69,
+	key_f15         = 0x6a,
+	key_f16         = 0x6b,
+	key_f17         = 0x6c,
+	key_f18         = 0x6d,
+	key_f19         = 0x6e,
+	key_f20         = 0x6f,
+	key_f21         = 0x70,
+	key_f22         = 0x71,
+	key_f23         = 0x72,
+	key_f24         = 0x73,
+
+	key_open        = 0x74, // Keyboard Execute
+	key_help        = 0x75, // Keyboard Help
+	key_props       = 0x76, // Keyboard Menu
+	key_front       = 0x77, // Keyboard Select
+	key_stop        = 0x78, // Keyboard Stop
+	key_again       = 0x79, // Keyboard Again
+	key_undo        = 0x7a, // Keyboard Undo
+	key_cut         = 0x7b, // Keyboard Cut
+	key_copy        = 0x7c, // Keyboard Copy
+	key_paste       = 0x7d, // Keyboard Paste
+	key_find        = 0x7e, // Keyboard Find
+	key_mute        = 0x7f, // Keyboard Mute
+	key_volumeup    = 0x80, // Keyboard Volume Up
+	key_volumedown  = 0x81, // Keyboard Volume Down
+
+	key_lock_caps_lock   = 0x82, // Keyboard Locking Caps Lock
+	key_lock_num_lock    = 0x83, // Keyboard Locking Num Lock
+	key_lock_scroll_lock = 0x84, // Keyboard Locking Scroll Lock
+
+	numpad_equal_2  = 0x86, // Keypad Equal Sign
+
+	key_international_1  = 0x87, // Keyboard ro
+	key_international_2  = 0x88, // Keyboard Katakana Hiragana
+	key_international_3  = 0x89, // Keyboard Yen
+	key_international_4  = 0x8a, // Keyboard henkan
+	key_international_5  = 0x8b, // Keyboard muhenkan
+	key_international_6  = 0x8c, // Keyboard Kp Jp Comma
+	key_international_7  = 0x8d,
+	key_international_8  = 0x8e,
+	key_international_9  = 0x8f,
+	key_lanugage_1  = 0x90, // Keyboard Hangeul
+	key_lanugage_2  = 0x91, // Keyboard Hanja
+	key_lanugage_3  = 0x92, // Keyboard Katakana
+	key_lanugage_4  = 0x93, // Keyboard Hiragana
+	key_lanugage_5  = 0x94, // Keyboard Zenkakuhankaku
+	key_language_6  = 0x95,
+	key_language_7  = 0x96,
+	key_language_8  = 0x97,
+	key_language_9  = 0x98,
+
+// 0x99 Keyboard Alternate Erase
+// 0x9a Keyboard SysReq/Attention
+// 0x9b Keyboard Cancel
+// 0x9c Keyboard Clear
+// 0x9d Keyboard Prior
+// 0x9e Keyboard Return
+// 0x9f Keyboard Separator
+// 0xa0 Keyboard Out
+// 0xa1 Keyboard Oper
+// 0xa2 Keyboard Clear/Again
+// 0xa3 Keyboard CrSel/Props
+// 0xa4 Keyboard ExSel
+
+	numpad_00       = 0xb0, // Keypad 00
+	numpad_000 = 0xb1, // Keypad 000
+	numpad_thousand_seperator = 0xb2, // Thousands Separator
+	numpad_decimal_seperator = 0xb3, // Decimal Separator
+	numpad_currency = 0xb4, // Currency Unit
+	numpad_currency_sub = 0xb5, // Currency Sub-unit
+	numpad_left_paren = 0xb6, // Keypad (
+	numpad_right_paren = 0xb7, // Keypad )
+		numpad_ = 0xb8, // Keypad {
+		                          numpad_ = 0xb9, // Keypad }
+	numpad_tab = 0xba,
+	numpad_backspace = 0xbb,
+	numpad_A = 0xbc,
+	numpad_B = 0xbd,
+	numpad_C = 0xbe,
+	numpad_D = 0xbf,
+	numpad_E = 0xc0,
+	numpad_F = 0xc1,
+	numpad_XOR = 0xc2,
+	numpad_carrot = 0xc3, // Keypad ^
+	numpad_percent = 0xc4, // Keypad %
+	numpad_lessthan = 0xc5, // Keypad <
+	numpad_greaterthan = 0xc6, // Keypad >
+	numpad_amper = 0xc7, // Keypad &
+	numpad_amperamper = 0xc8, // Keypad &&
+	numpad_pipe = 0xc9, // Keypad |
+	numpad_pipepipe = 0xca, // Keypad ||
+	numpad_colon = 0xcb, // Keypad :
+	numpad_hash = 0xcc, // Keypad #
+	numpad_space = 0xcd, // Keypad Space
+	numpad_at = 0xce, // Keypad @
+	numpad_bang = 0xcf, // Keypad !
+	numpad_memory_store = 0xd0,
+	numpad_memory_recall = 0xd1,
+	numpad_memory_clear = 0xd2,
+	numpad_memory_add = 0xd3,
+	numpad_memory_subtract = 0xd4,
+	numpad_memory_multiply = 0xd5,
+	numpad_memory_divide = 0xd6,
+	numpad_sign_toggle = 0xd7, // Keypad +/-
+	numpad_clear = 0xd8,
+	numpad_clear_entry = 0xd9,
+	numpad_base_binary = 0xda,
+	numpad_base_octal = 0xdb,
+	numpad_base_decimal = 0xdc,
+	numpad_base_hexadecimal = 0xdd,
+
+		// TODO: Why do these have key events as well?
+	// key_leftctrl = 0xe0, // Keyboard Left Control
+	// key_leftshift = 0xe1, // Keyboard Left Shift
+	// key_leftalt = 0xe2, // Keyboard Left Alt
+	// key_leftmeta = 0xe3, // Keyboard Left GUI
+	// key_rightctrl = 0xe4, // Keyboard Right Control
+	// key_rightshift = 0xe5, // Keyboard Right Shift
+	// key_rightalt = 0xe6, // Keyboard Right Alt
+	// key_rightmeta = 0xe7, // Keyboard Right GUI
+
+	media_playpause    = 0xe8,
+	media_stopcd       = 0xe9,
+	media_previoussong = 0xea,
+	media_nextsong     = 0xeb,
+	media_ejectcd      = 0xec,
+	media_volumeup     = 0xed,
+	media_volumedown   = 0xee,
+	media_mute         = 0xef,
+	media_www          = 0xf0,
+	media_back         = 0xf1,
+	media_forward      = 0xf2,
+	media_stop         = 0xf3,
+	media_find         = 0xf4,
+	media_scrollup     = 0xf5,
+	media_scrolldown   = 0xf6,
+	media_edit         = 0xf7,
+	media_sleep        = 0xf8,
+	media_coffee       = 0xf9, // wat?
+	media_refresh      = 0xfa,
+	media_calc         = 0xfb
+};
+// clangformat off
+/*
+     #+END_SRC
 *** Key-Press
     A key press is either an up or a down event from an individual key
     on the keyboard.
+**** TODO Code
 *** Rep-Key
     Rep-Key was a hardware feature in old keyboards and was moved to
     software in the USB-HID protocol.  It is the feature of if a key
@@ -130,6 +441,19 @@
     TODO: A possible feature addition is to send keys in "bursts" so
     that, per se, 8 keys would be sent and then a longer wait would
     occur.
+**** Code
+     #+BEGIN_SRC c
+//*/
+// clangformat on
+struct Rep_Key_Settings{
+        uint8_t initial_wait_time_ms;
+        uint8_t keypress_frequency_ms;
+        // uint8_t burst_size;
+        // uint8_t inter_burst_wait_ms;
+};
+// clangformat off
+/*
+     #+END_SRC
 *** Layer
     The term "Layer" is borrowed from ErgoDox's parlance.  A layer
     contains the information about what is meant by a key press.  For
