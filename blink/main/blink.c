@@ -45,43 +45,230 @@
     #+END_SRC
 * Design
 ** Requirements
-   1. All normal keyboard features.
-      1. Send all normal key codes.
-      2. Send keys with status codes.
-      3. Press and hold keys.
-      4. Status lights
-	 1. Caps Lock
-	 2. Scroll Lock
-	 3. Number Lock
-   2. ErgoDox Features
-      1. Key Layers
-      2. Read Config File Formats
-** Thinking about impossible interactions and requirements.
+*** High level
+    1. All normal keyboard features.
+       1. Send all normal key codes.
+       2. Send keys with status codes.
+       3. Press and hold keys.
+       4. Status lights
+          1. Caps Lock
+	  2. Scroll Lock
+          3. Number Lock
+       5. Low Latency
+    2. ErgoDox Features
+       1. Key Layers
+       2. Read Config File Formats
+    3. Personal Requirements
+       1. Support any Desired Key Arrangement
+       2. Support all (human and programming) Languages
+          1. Support being an APL keyboard
+       3. Custom Rep-key times
+          Added as it's easy once 3.1 is supported
+       4. Doesn't interfere with other keyboards plugged-in in
+          unintuitive ways.
+*** Derived Requirements
+    1. 3.1 & 3.2 Support sending Unicode chars
+** Note on OS Language Settings
+   When the language is set on an operating system key codes change
+   meaning.  An extreme case is setting the language to Dvorak where
+   the letter keys are remapped so that the key-code for 'q' is
+   interpreted as '\''.
+
+   The costs of Supporting the language being changed:
+   1. Lots of maintenance
+   2. Large conversion tables for some languages
+
+   The benefits of supporting this are:
+   1. The ability to send language specific chars in [[*Gaming Modes][~Gaming~ mode]].
+   2. Better interactions with other keyboards.
+
+   As the costs greatly out-way the benefits this is not supported.
+
+   NOTE: Should this feature become greatly requested, a compile time
+   conversion could be added to add partial support for this.
+** Interactions of Requirements and Protocols
    Some combinations of interactions are impossible given how USB-HID
-   and PS2 work.  Such an interaction is holding down 'a' at the same
-   time as 'B' since 'B' requires shift and 'a' requires not shift.
+   and PS2 work.  Example: Holding down 'a' at the same time as 'B'
+   since 'B' requires shift and 'a' requires not shift.
 
-   Here is a list of features:
-   1) Holding down keys. (for games and application rep-keys)
-   2) Custome rep-key times (a key code is repetitively sent while the
-      button is held)
-   3) Custom char per key
-   4) Unicode chars
+   The requirements that are in the most direct conflict are ~1.3~ and
+   ~3.1~ since ~3.1~ allows the user to type combinations forbidden by
+   the aforementioned protocols.  There are several other requirements
+   in conflict with ~1.3~ for the same reason.
 
-   And the interactions between these features:
-   1,2 Incompatible
-   1,3 Incompatible if keys are not in the same shit layers as default
-   1,4 Incompatible
-   2,3 Compatible
-   2,4 Compatible
-   3,4 Compatible
+   As such, to meet the requirements the keyboard must support
+   switching between which requirements are enabled at a point in time.
 
-   Well, that's a clean divide.  When specifying a mode we will then
-   set if we are using feature (1) or features (2,3,4) as a toggle on
-   that mode.
+   The solution used is to add the concept of a ~Mode~ to the
+   keyboard. A key combination can switch the Mode of the keyboard.
+   While in a mode the keyboard follows either requirement ~1.3~ or all
+   of those requirements precluded by ~1.3~.
+** Concepts
+*** Key-Code
+    A Key-Code is a concept from the USB-HID standard and replaces the
+    Scan-Code concept in PS2.
 
-   What are the implications of this?
+    A Key-Code is a unique code for each key the USB-HID standard
+    accepts and are mend by that standard to map directly to each key
+    on the keyboard.  This was meant to allow software on the computer
+    to remap and reinterpret those keys.  This has historically not
+    occurred outside of the operating system and only limitedly there.
 
+*** Key-Press
+    A key press is either an up or a down event from an individual key
+    on the keyboard.
+*** Rep-Key
+    Rep-Key was a hardware feature in old keyboards and was moved to
+    software in the USB-HID protocol.  It is the feature of if a key
+    is held down it is to be repetitively typed.
+
+    Settings on Rep-Key are:
+    1) How long to wait before starting to send the key after the
+       initial pressing.
+    2) How frequently to send the copies key.
+
+    TODO: A possible feature addition is to send keys in "bursts" so
+    that, per se, 8 keys would be sent and then a longer wait would
+    occur.
+*** Layer
+    The term "Layer" is borrowed from ErgoDox's parlance.  A layer
+    contains the information about what is meant by a key press.  For
+    example a layer called "Mirror" might be used to make all keys on
+    the left side of the keyboard pretend to be on the right for ease
+    of use with a mouse, or a function layer might map "WASD" to the
+    arrow keys.
+**** Unordered
+     If a mode has unordered layers then which keys apply layers and
+     which layers must remain constant for all layers within the
+     mode.  This is how most users expect the keyboard to function and
+     is the default behavior.
+**** Ordered
+     If Layers are applied as an ordered operation then they are far
+     more powerful and far more confusing to configure.
+
+     When a key is pressed that is a layer key in the current layer
+     that key is added to the layer-key stack and the layer is
+     recalculated based on the layer stack.
+
+     When a key in the layer stack is released, if it is the current
+     (top) key in the stack the layer is reverted to the layer added
+     by the next top most key in the stack.  It that key is not the
+     top most then it is removed from the layer stack and the current
+     layer is left as it is.
+
+     Example:
+     Let Alt, Ctrl, and Shift be implemented as layers
+     1. Press Alt
+        - Stack: Alt
+        - Enter Alt Layer
+     2. Press Ctrl
+        - Stack: Alt, Ctrl_Alt
+        - Enter Ctrl_Alt Layer
+     3. Press Shift
+        - Stack: Alt, Ctrl_Alt, Shift_Ctrl_Alt
+        - Enter Shift_Ctrl_Alt Layer
+     4. Release Ctrl
+        - Stack: Alt, Shift_Ctrl_Alt
+        - No Layer Change
+     5. Release Shift
+        - Stack: Alt
+        - Layer Changed to Alt
+
+     As can be seen the Shift_Ctrl_Alt layer is still active after
+     Ctrl is released.  This can allow that key to perform an action
+     other than applying Ctrl while in this layer.
+
+     Note: If Alt, Ctrl, and Shift are made into layer as in the
+     example rather than being modifier keys, then holding shift on
+     this keyboard will not make other keyboards type in capitals (as
+     they normally would).
+*** Mode
+    At any point in time the keyboard has a single mode.  Each mode
+    is either a ~Gaming~ or ~Typing~ mode.
+**** Gaming Modes
+     In ~Gaming~ modes the key layout must follow the requirements
+     imposed by the PS2 and USB-HID protocols.
+
+     More explicitly:
+     1. Layers are unordered.
+     2. Keys are assigned to either a key-code or a modifier key.
+        1. Keys are assigned to PS2 keys rather than chars.  As such
+           'A' can't be assigned to a key, only 'a' can.  This is more
+           important for symbol keys.
+        2. Keys can't be Non-standard chars like '£.
+**** Typing Modes
+     in ~Typing~ modes holding a keys sends the key as a press and
+     release.  The configuration must specify the settings for Rep-Key
+     to emulate key holding.
+** Generating Key-Codes
+   1. Respect Caps-Lock State
+   2. Respect Num-lock State
+   3. Latency
+** Sending Unicode Characters
+   Depending on the operating systems being used there are different
+   and possibly no way to send Unicode characters.
+
+   Original Source
+   https://github.com/duckythescientist/BinaryKeyboard.git
+
+   The currently known and supported methods of sending Unicode
+   characters are:
+*** Windows
+    1) Press ALT
+    2) Send numpad_plus
+    3) Type hexadecimal value
+    4) Release ALT
+
+    Note: ~HKEY_CURRENT_USER\Control Panel\Input Method~ contains a
+    string type (REG_SZ) value called ~EnableHexNumpad~, which must
+    have the value ~1~.
+
+    Note: Windows seems to only type 2-byte symbols.  There are other
+    methods that may have more symbols, but this is the more universal
+    method.
+    #+BEGIN_SRC c
+//*/
+#define OS_WINDOWS_UNICODE {/*TODO*/}
+/*
+    #+END_SRC
+*** Linux
+    1) Send CTRL+ALT+SHIFT+U
+    2) Type hexadecimal (no leading zeros)
+    3) Send space
+
+    Note: Some applications need the ALT, and some don't. It seems to
+    work on both if it is held.
+
+    Note: this may be X specific or application specific.  I've had
+    success in Ubuntu 14.04 with Unity (Chrome, Guake, Gedit, Sublime
+    Text 3).
+
+    #+BEGIN_SRC c
+//*/
+#define OS_LINIX_UNICODE {/*TODO*/}
+/*
+    #+END_SRC
+*** Mac
+    No tested methods exist yet, assuming the Linux one works.
+
+    #+BEGIN_SRC c
+//*/
+#define OS_DARWIN_UNICODE OS_LINIX_UNICODE
+/*
+    #+END_SRC
+*** Emacs
+    The function ~insert-char~ allows for the insertion of Unicode
+    characters.  This function usually bound to ~C-x 8 <ret> hex_code~
+    but for reliability the command ~M-x insert-char <ret> hex_code~
+    will be used.  This is customizable to respect the user's
+    configuration here.
+
+    #+BEGIN_SRC c
+//*/
+#define OS_EMACS_UNICODE {/*TODO*/}
+/*
+    #+END_SRC
+** OOOOOOOOOOOOOOOOO
    We want keys presses to be fast while in a mode.  We can discard
    the above "keeping layer keys between modes" idea since modes are
    now a larger and more important idea and the user will understand
@@ -105,7 +292,7 @@
    Use Cases:
    1. Tap 'a' -> Send 'a' Key
    2. Press Shift, Tap 'a' -> Send 'A'
-   3. Press Shift, Tap 'a'. Tap 'b' -> Send 'AB'
+   3. Press Shift, Tap 'a', Tap 'b' -> Send 'AB'
    4. Tap Caps-lock -> Switch to "Shift on by Default" Mode
    5. Press Hyper, Tap ESC -> Switch to IPA Mode (or APL Mode, or
    something)
@@ -408,40 +595,6 @@ bool send_char(unicode_char c,unsigned char modifiers=0){
 		// send the key
 	}else{
 		// send it as Unicode
-		/*
-		 * Sending Unicode
-		 *
-		 * Source:
-		 * https://github.com/duckythescientist/BinaryKeyboard.git
-		 *
-		 * * Windows
-		 *
-		 *   1) Press ALT
-		 *   2) Send numpad_plus
-		 *   3) Type hexadecimal value
-		 *   4) Release ALT
-		 *
-		 *   Note: ~HKEY_CURRENT_USER\Control Panel\Input Method~
-		 *   contains a string type (REG_SZ) value called
-		 *   ~EnableHexNumpad~, which must have the value ~1~.
-		 *
-		 *   Note: Windows seems to only type 2-byte symbols.  There
-		 *   are other methods that may have more symbols, but this is
-		 *   the more universal method.
-		 *
-		 * * Linux (and hopefully macs)
-		 *
-		 *   1) Send CTRL+ALT+SHIFT+U
-		 *   2) Type hexadecimal (no leading zeros)
-		 *   3) Send space
-		 *
-		 *   Note: Some applications need the ALT, and some don't. It
-		 *   seems to work on both if it is held.
-		 *
-		 *   Note: this may be X specific or application specific.
-		 *   I've had success in Ubuntu 14.04 with Unity (Chrome,
-		 *   Guake, Gedit, Sublime Text 3).
-		 */
 	}
 }
 
@@ -619,4 +772,9 @@ if(led_state!=pressed){
 /*
  #+END_SRC
 * End of File Format Corrector
-//*/
+  This is so the C interpretation of this file is valid.
+
+  Note: The source block is not supposed to be ended.
+
+  #+BEGIN_SRC c
+  //*/
