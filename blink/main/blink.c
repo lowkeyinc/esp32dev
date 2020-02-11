@@ -5,6 +5,12 @@
   This file is both a valid org-mode file and a valid c file.  As such
   there is some strangeness to deal with clangformat's and org's
   opions on indenting differing.
+* Global Configureation Macros
+  #+BEGIN_SRC c
+//*/
+#define DEVELOPMENT_BUILD 1
+/*
+  #+END_SRC
 * Include Statements
 ** Libraries
   - ~stdio.h~
@@ -106,6 +112,9 @@
    of those requirements precluded by ~1.3~.
 ** Concepts
 *** Key-Code
+    TODO: Get the rest of the HID standard here and make this a
+    subsection of it.
+
     A Key-Code is a concept from the USB-HID standard and replaces the
     Scan-Code concept in PS2.
 
@@ -118,7 +127,7 @@
     #+BEGIN_SRC c
 //*/
 // clangformat on
-/**
+/*
  * USB HID Keyboard scan codes as per USB spec 1.11
  *
  * Adapted from:
@@ -128,13 +137,18 @@
 enum struct usb_hid_modifier:unit8_t;
 enum struct usb_hid_key:uint8_t;
 
+/*
+ * If more than N keys are pressed, the HID reports
+ * KEY_ERR_OVF in all slots to indicate this condition.
+ */
+
 struct USB_HID_STATUS{
 	usb_hid_modifier modifier;
 	uint8_t; //RESERVED
 	usb_hid_key key[6];
 };
 
-/**
+/*
  * Modifier masks - used for the first byte in the HID report.
  */
 enum struct usb_hid_modifier:uint8_t{
@@ -147,14 +161,10 @@ enum struct usb_hid_modifier:uint8_t{
 	RALT	= 0x40,
 	RMETA	= 0x80
 };
-/**
- * Scan codes - last N slots in the HID report (usually 6).
- * 0x00 if no key pressed.
- *
- * If more than N keys are pressed, the HID reports
- * KEY_ERR_OVF in all slots to indicate this condition.
- */
 
+/*
+ * USB HID Key Scan Codes
+ */
 enum struct usb_hid_key:uint8_t{
 	none            = 0x00, // No key pressed
 	error_overflow  = 0x01, // More than 8 keys pressed
@@ -272,7 +282,8 @@ enum struct usb_hid_key:uint8_t{
 	key_102nd       = 0x64, // Same as 0x31, also types \ Alternate |
 	numpad_comma    = 0x85,
 
-private:  // TODO: Test what any of the keys after here actually do.
+#if DEVELOPMENT_BUILD
+		// TODO: Test what any of the keys after here actually do.
 
 	key_compose     = 0x65, // Keyboard Application
 	key_power       = 0x66, // Keyboard Power
@@ -425,9 +436,9 @@ private:  // TODO: Test what any of the keys after here actually do.
 // clangformat off
 /*
      #+END_SRC
-*** Key-Press
-    A key press is either an up or a down event from an individual key
-    on the keyboard.
+**** Key-Press
+     A key press is either an up or a down event from an individual key
+     on the keyboard.
 *** Rep-Key
     Rep-Key was a hardware feature in old keyboards and was moved to
     software in the USB-HID protocol.  It is the feature of if a key
@@ -441,6 +452,14 @@ private:  // TODO: Test what any of the keys after here actually do.
     TODO: A possible feature addition is to send keys in "bursts" so
     that, per se, 8 keys would be sent and then a longer wait would
     occur.
+
+    TODO: The rep-keys feature isn't really implementable in the above
+    system.  The key press and key release functions can add and
+    remove a char(s) from the ~rep_buffer~ and a timed daemon (like
+    the Bluetooth one) can keep re-adding the keys every unit time.
+
+    TODO: This belongs somewhere else.  Offer an Emacs like ~M-7 a~
+    types 7 'a's.
 
     #+BEGIN_SRC c
 //*/
