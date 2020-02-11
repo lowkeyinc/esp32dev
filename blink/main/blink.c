@@ -521,69 +521,94 @@ struct Rep_Key_Settings{
     the left side of the keyboard pretend to be on the right for ease
     of use with a mouse, or a function layer might map "WASD" to the
     arrow keys.
-**** Unordered
-     If a mode has unordered layers then which keys apply layers and
-     which layers must remain constant for all layers within the
-     mode.  This is how most users expect the keyboard to function and
-     is the default behavior.
-**** Ordered
-     If Layers are applied as an ordered operation then they are far
-     more powerful and far more confusing to configure.
 
-     When a key is pressed that is a layer key in the current layer
-     that key is added to the layer-key stack and the layer is
-     recalculated based on the layer stack.
-
-     When a key in the layer stack is released, if it is the current
-     (top) key in the stack the layer is reverted to the layer added
-     by the next top most key in the stack.  It that key is not the
-     top most then it is removed from the layer stack and the current
-     layer is left as it is.
+    Layers keys come in two forms, Tap and Hold.  The list of active
+    layers uses a chronological "stack".
+**** Hold Layer Keys
+     If a layer key is a hold key then the key which invoked the layer
+     needs to be held down while the mode is enabled.  Note that if a
+     second layer is entered from a first releaseing the first will
+     not change the meaning of the second.  (It is belived that
+     ergodox does not support this as a defined behavior and so no
+     compilence is needed.)
 
      Example:
-     Let Alt, Ctrl, and Shift be implemented as layers
-     1. Press Alt
-        - Stack: Alt
-        - Enter Alt Layer
-     2. Press Ctrl
-        - Stack: Alt, Ctrl_Alt
-        - Enter Ctrl_Alt Layer
-     3. Press Shift
-        - Stack: Alt, Ctrl_Alt, Shift_Ctrl_Alt
-        - Enter Shift_Ctrl_Alt Layer
-     4. Release Ctrl
-        - Stack: Alt, Shift_Ctrl_Alt
-        - No Layer Change
-     5. Release Shift
-        - Stack: Alt
-        - Layer Changed to Alt
+     1. Let Normal, Mirror,  Funciton, and Mirrored-Funciton be
+        layers.
+     2. Startup
+	- Layer Stack: Normal
+     3. Mirror Key is pressed down
+	- Layer Stack: Normal, Mirror
+     4. Mirror-Function key is pressed down
+	- Layer Stack: Normal, Mirror, Mirror-Function
+     5. Mirror Key is released
+	- Layer Stack: Normal, Mirror-Function
 
-     As can be seen the Shift_Ctrl_Alt layer is still active after
-     Ctrl is released.  This can allow that key to perform an action
-     other than applying Ctrl while in this layer.
+     As we can see, at the end of this the Mirror-Funciton Layer is
+     still the active layer.
+**** Tap Layer Key
+     If a layer key is a Tap Layer Key then tapping the key switches
+     to the layer and clears the Layer stack.
 
-     Note: If Alt, Ctrl, and Shift are made into layer as in the
-     example rather than being modifier keys, then holding shift on
-     this keyboard will not make other keyboards type in capitals (as
-     they normally would).
+     Example:
+     1. Let Normal, Meta, and Function be layers, and Function be
+        assigned to a Tap Key in the Meta Layer.
+     2. Startup
+	- Layer Stack: Normal
+     3. Meta is pressed
+	- Layer Stack: Normal, Meta
+     4. Function is Tapped
+	- Layer Stack: Funciton
+     5. Meta is Released
+        - Layer Stack: Funciton
+***** TODO Pop Layer Key
+     It is not required that a Tap Layer Key clear the layer stack, as
+     one can assign a key to "Pop the current layer".
+
+     Example:
+     Let Normal and Meta be layers.
+     1. Startup
+	- Stack: Normal
+     2. Tap Meta
+        - Stack: Normal, Meta
+     3. Type things
+        - Things done in Meta layer
+        - Stack: Normal, Meta
+     4. Tap Pop
+        - Stack: Normal
+***** TODO Sticky Layers
+      Another variant of the Tap Layer Key is the sticky layer.  A
+      sticky layer is a layer that is applied for only the next key
+      press.
+**** Layer Stack
+     Layers are applied as an ordered operation.  When a layer key is
+     pressed or tapped that layer is added to the layer stack.  When a
+     key in the layer stack is released, if it is the current (top)
+     key in the stack the layer is reverted to the layer added by the
+     next top most key in the stack.  It that key is not the top most
+     then it is removed from the layer stack and the current layer is
+     left as it is.
 *** Mode
-    At any point in time the keyboard has a single mode.  Each mode
-    is either a ~Gaming~ or ~Typing~ mode.
+    Each layer has a mode, either ~Gaming~ or ~Typing~.
 **** Gaming Modes
-     In ~Gaming~ modes the key layout must follow the requirements
+     In ~Gaming~ mode the key layout must follow the requirements
      imposed by the PS2 and USB-HID protocols.
 
      More explicitly:
-     1. Layers are unordered.
-     2. Keys are assigned to either a key-code or a modifier key.
+     1. Keys are assigned to either a key-code or a modifier key.
         1. Keys are assigned to PS2 keys rather than chars.  As such
            'A' can't be assigned to a key, only 'a' can.  This is more
-           important for symbol keys.
+           notable for symbol keys.
         2. Keys can't be Non-standard chars like '£.
+
+     This is so that when a key is pressed the computer can see the
+     key as held until it's release.  This generaly only matters when
+     playing a game.
 **** Typing Modes
-     in ~Typing~ modes holding a keys sends the key as a press and
-     release.  The configuration must specify the settings for Rep-Key
-     to emulate key holding.
+     In ~Typing~ mode holding a keys sends the key as a press and a
+     release.  The layer configuration must then also specify the
+     settings for Rep-Key to emulate the standard key holding effect
+     in most programs.
 ** Generating Key-Codes
    1. Respect Caps-Lock State
    2. Respect Num-lock State
