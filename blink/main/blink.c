@@ -26,23 +26,24 @@
   - ~freertos/task.h~
 
   - ~sdkconfig.h~
-*** Code
-    #+BEGIN_SRC c
+
+   #+BEGIN_SRC c
+//*/
 #include <stdio.h>
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "sdkconfig.h"
-    #+END_SRC
+/*
+   #+END_SRC
 ** Project Local
   - ~bl_hidd.c~
-*** Code
-    #+BEGIN_SRC c
- */
+   #+BEGIN_SRC c
+//*/
 #include "ble_hidd.c"
 /*
-    #+END_SRC
+   #+END_SRC
 * Design
 ** Requirements
 *** High level
@@ -113,8 +114,8 @@
     on the keyboard.  This was meant to allow software on the computer
     to remap and reinterpret those keys.  This has historically not
     occurred outside of the operating system and only limitedly there.
-**** Code
-     #+BEGIN_SRC c
+
+    #+BEGIN_SRC c
 //*/
 // clangformat on
 /**
@@ -427,7 +428,6 @@ private:  // TODO: Test what any of the keys after here actually do.
 *** Key-Press
     A key press is either an up or a down event from an individual key
     on the keyboard.
-**** TODO Code
 *** Rep-Key
     Rep-Key was a hardware feature in old keyboards and was moved to
     software in the USB-HID protocol.  It is the feature of if a key
@@ -441,8 +441,8 @@ private:  // TODO: Test what any of the keys after here actually do.
     TODO: A possible feature addition is to send keys in "bursts" so
     that, per se, 8 keys would be sent and then a longer wait would
     occur.
-**** Code
-     #+BEGIN_SRC c
+
+    #+BEGIN_SRC c
 //*/
 // clangformat on
 struct Rep_Key_Settings{
@@ -453,7 +453,7 @@ struct Rep_Key_Settings{
 };
 // clangformat off
 /*
-     #+END_SRC
+    #+END_SRC
 *** Layer
     The term "Layer" is borrowed from ErgoDox's parlance.  A layer
     contains the information about what is meant by a key press.  For
@@ -550,6 +550,7 @@ struct Rep_Key_Settings{
     Note: Windows seems to only type 2-byte symbols.  There are other
     methods that may have more symbols, but this is the more universal
     method.
+
     #+BEGIN_SRC c
 //*/
 #define OS_WINDOWS_UNICODE {/*TODO*/}
@@ -665,7 +666,7 @@ struct Rep_Key_Settings{
      should also be active in the new mode.
 * Unsorted Code
   #+BEGIN_SRC c
- */
+//*/
 // clangformat on
 #define LED_GPIO 32
 #define BUTTON_GPIO 5
@@ -1093,12 +1094,16 @@ if(led_state!=pressed){
 	}
 }
 */
+// clangformat off
 /*
  #+END_SRC
 * End of File Format Corrector
   This is so the C interpretation of this file is valid.
 
-  Note: The source block is not supposed to be ended.
+  Note: The final comment ends with an escape so that it eats the
+  source block end.
 
   #+BEGIN_SRC c
-  //*/
+//*/
+// \
+  #+END_SRC
