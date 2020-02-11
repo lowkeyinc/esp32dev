@@ -432,7 +432,48 @@ enum struct usb_hid_key:uint8_t{
 	media_coffee       = 0xf9, // wat?
 	media_refresh      = 0xfa,
 	media_calc         = 0xfb
+#endif
 };
+// clangformat off
+/*
+    #+END_SRC
+*** Keyboard
+**** Model
+     There are several designs of keyboard hardware that this project
+     attempts to support.
+
+     #+BEGIN_SRC c
+//*/
+// clangformat on
+#define ERGODOX_LEFT
+#define ERGODOX_RIGHT
+#define TEST_KEYBOADR_UNIFIED
+#define KEYBOARD_HARDWARE_MODEL TEST_KEYBOADR_UNIFIED
+// clangformat off
+/*
+     #+END_SRC
+**** Rows and Columns
+     TODO: text here.
+
+     #+BEGIN_SRC c
+//*/
+// clangformat on
+#if KEYBOARD_HARDWARE_MODEL == ERGODOX_LEFT
+#define KEYBOARD_COLUMNS_COUNT  7
+#define KEYBOARD_COLUMNS_PINS
+#define KEYBOARD_ROWS_COUNT     6
+#define KEYBOARD_ROWS_PINS
+#if KEYBOARD_HARDWARE_MODEL == ERGODOX_RIGHT
+#define KEYBOARD_COLUMNS_COUNT  7
+#define KEYBOARD_COLUMNS_PINS
+#define KEYBOARD_ROWS_COUNT     6
+#define KEYBOARD_ROWS_PINS
+#elif KEYBOARD_HARDWARE_MODEL == TEST_KEYBOADR_UNIFIED
+#define KEYBOARD_COLUMNS_COUNT 14
+#define KEYBOARD_COLUMNS_PINS
+#define KEYBOARD_ROWS_COUNT     6
+#define KEYBOARD_ROWS_PINS
+#endif
 // clangformat off
 /*
      #+END_SRC
